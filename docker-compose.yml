@@ -1,0 +1,56 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  user-service:
+    build: ../user-service
+    container_name: user-service
+    restart: always
+    depends_on:
+      - db
+    environment:
+      task.host: http://task-service:8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres?currentSchema=public
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  task-service:
+    build: ../task-management-service
+    container_name: task-service
+    restart: always
+    depends_on:
+      - db
+    environment:
+      USER_HOST: http://user-service:8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres?currentSchema=public
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
+
